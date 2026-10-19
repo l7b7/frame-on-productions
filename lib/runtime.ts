@@ -5,10 +5,10 @@ import { defaultSettings, type Entry, type Settings, type Media } from '@/lib/co
 import { validSignature, MAX_MEDIA_BYTES } from '@/lib/validation';
 import { HttpError } from '@/lib/errors';
 export type AdminSession = { authenticated:boolean; authorized:boolean; name:string; mode:'sites'|'supabase'; configured:boolean; signInUrl:string; signOutUrl:string };
-const config=()=>({url:(process.env.SUPABASE_URL||'').replace(/\/$/,''),anon:process.env.SUPABASE_ANON_KEY||'',service:process.env.SUPABASE_SERVICE_ROLE_KEY||''});
+const config=()=>({url:(process.env.SUPABASE_URL||'').replace(/\/$/,''),anon:process.env.SUPABASE_PUBLISHABLE_KEY||process.env.SUPABASE_ANON_KEY||'',service:process.env.SUPABASE_SECRET_KEY||process.env.SUPABASE_SERVICE_ROLE_KEY||''});
 const bucketName='frameon-media';
 const isConfigured=()=>{const c=config();return !!(c.url&&c.anon&&c.service);};
-async function service(path:string,init:RequestInit={}):Promise<Response>{const c=config();if(!isConfigured())throw new Error('Supabase is not configured.');const headers=new Headers(init.headers);headers.set('apikey',c.service);headers.set('Authorization',`Bearer ${c.service}`);return fetch(`${c.url}${path}`,{...init,headers,cache:'no-store'});}
+async function service(path:string,init:RequestInit={}):Promise<Response>{const c=config();if(!isConfigured())throw new Error('Supabase is not configured.');const headers=new Headers(init.headers);headers.set('apikey',c.service);if(c.service.startsWith('sb_secret_'))headers.delete('Authorization');else headers.set('Authorization',`Bearer ${c.service}`);return fetch(`${c.url}${path}`,{...init,headers,cache:'no-store'});}
 async function must(res:Response){if(!res.ok){console.error('Storage/database response',res.status);throw new Error('Database or storage request failed.');}return res;}
 async function tokenUser(token:string){const c=config();const r=await fetch(`${c.url}/auth/v1/user`,{headers:{apikey:c.anon,Authorization:`Bearer ${token}`},cache:'no-store'});return r.ok?await r.json() as {id:string;email?:string}:null;}
 async function isAdmin(userId:string):Promise<boolean>{

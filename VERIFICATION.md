@@ -80,3 +80,17 @@ The first GitHub publication exposed a portability defect in the earlier npm loc
 After the correction, a fresh `npm ci --no-audit --no-fund` installed the application dependencies in that isolated directory, and `npm run build` completed successfully, including the TypeScript check and generation of public pages. All 65 lockfile package entries are portable, with no local dependency links or filesystem resolution paths. This clean installation supersedes the earlier build verification that used the development checkout's shared dependencies.
 
 Live hosting status must be read from Vercel separately. Supabase accounts, storage and environment variables still require the owner's configuration.
+
+## Staff publishing and database setup revision
+
+The CMS now supports a separate `post` kind with news, article and event categories, including text-only publication. The public studio journal filters those categories and excludes drafts. The SQL setup upgrades the existing kind constraint without deleting rows and provides a SQL-Editor-only `frame_grant_admin(email, name)` helper for existing Auth users. Browser roles have no execute permission on this helper.
+
+The backend accepts modern `SUPABASE_PUBLISHABLE_KEY` / `SUPABASE_SECRET_KEY` settings as well as legacy aliases. Modern secret keys are sent in the `apikey` header and are never used as a Bearer JWT. Site metadata now defaults to the actual production origin.
+
+Validation for this revision:
+
+- Production Next.js build and TypeScript passed in the isolated clean-install directory.
+- 18 backend checks passed with mocked HTTP responses and a cookie jar. They include modern and legacy key handling, login/logout, live membership revocation, text-only draft creation and publishing through the real route handlers, invalid content rejection and denied writes by revoked staff.
+- 24 React/JSDOM interaction checks passed, including the staff journal tab, default draft state, category choices, public category filtering, draft exclusion and opening the selected article. These checks do not perform visual browser rendering.
+
+The live admin URL returned HTTP 200; its session endpoint reported `configured:false`, and unauthenticated entries requests returned 401 before this update. The installed Vercel connector returned 403 for the known project scope, and no authenticated Vercel CLI was available. Actual Supabase schema execution, real staff login and media uploads remain unverified until the owner configures a Supabase project and production environment keys. No production test content or staff account was created.

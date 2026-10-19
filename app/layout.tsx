@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import './experience.css';
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://frame-on-productions.vercel.app'),
   title: { default: 'FRAME ON PRODUCTIONS | فريم أون للإنتاج الإعلامي', template: '%s | FRAME ON' },
   description: 'إنت تتخيّل… وإحنا نصنع المشهد. إنتاج إعلامي، إعلانات، أفلام، تسويق، ومواقع إلكترونية من فريم أون.',
   icons: { icon: '/brand-logo-transparent.png', apple: '/brand-logo-transparent.png' },

@@ -309,6 +309,25 @@
 @keyframes lens-focus { 0%,100% { opacity:.5; transform:translate(-50%,-50%) scale(.97); } 50% { opacity:.85; transform:translate(-50%,-50%) scale(1.025); } }
 
 /* Staff enter through their own workspace, independent of the public layout. */
+.updates-section { border-top:1px solid var(--line); border-bottom:1px solid var(--line); background:#101014; }
+.updates-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:28px; }
+.update-card { min-width:0; }
+.update-card>button { width:100%; height:100%; display:flex; flex-direction:column; padding:0; text-align:start; }
+.update-cover { aspect-ratio:16/10; width:100%; overflow:hidden; background:#19191f; }
+.update-cover>img { width:100%; height:100%; object-fit:cover; transition:transform .4s; }
+.update-card>button:hover .update-cover>img { transform:scale(1.04); }
+.update-cover-type { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:18px; background:radial-gradient(ellipse at 85% 15%,#d0272d14,transparent 65%),#17171d; border:1px solid #ffffff12; color:#d5555a; }
+.update-cover-type>.mono { font-size:7px; letter-spacing:2px; color:#8a7c83; }
+.update-copy { display:flex; flex-direction:column; flex:1; width:100%; padding:21px 0; border-bottom:1px solid var(--line); }
+.update-meta { display:flex; justify-content:space-between; gap:12px; color:#9797a4; font-size:9px; }
+.update-meta>span { color:#e26a6e; }
+.update-copy h3 { font-size:21px; margin:13px 0 10px; line-height:1.7; }
+.update-copy>p { font-size:11px; line-height:2; color:#9595a2; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; margin-bottom:22px; }
+.update-read { display:flex; align-items:center; justify-content:space-between; margin-top:auto; gap:15px; color:#d8d5da; font-size:10px; }
+.update-read>svg { color:var(--red); }
+.updates-empty { padding:30px 0; color:#9696a3; font-size:13px; border-top:1px solid var(--line); }
+@media(max-width:1000px) { .updates-grid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:25px; } }
+@media(max-width:680px) { .updates-grid { grid-template-columns:1fr; } .update-copy h3 { font-size:22px; } .update-copy>p { font-size:12px; } .update-meta { font-size:10px; } .update-read { font-size:11px; } }
 .admin-access { display:grid; grid-template-columns:minmax(0,1.05fr) minmax(0,1fr); min-height:100svh; background:#0b0c10; }
 .admin-access-scene { position:relative; isolation:isolate; overflow:hidden; display:flex; flex-direction:column; justify-content:space-between; min-width:0; padding:48px clamp(30px,5vw,84px); border-inline-end:1px solid #ffffff13; }
 .admin-access-image { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; object-position:48% center; z-index:-2; opacity:.49; }

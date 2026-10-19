@@ -1,6 +1,11 @@
 export type Lang = 'ar' | 'en';
 export type Media = { key: string; name: string; mime: string; size: number };
-export type Entry = { id: string; kind: 'project' | 'team'; category: string; titleAr: string; titleEn: string; descriptionAr: string; descriptionEn: string; media: Media[]; videoUrl: string; featured: boolean; published: boolean; createdAt: string; updatedAt: string };
+export type Entry = { id: string; kind: 'project' | 'team' | 'post'; category: string; titleAr: string; titleEn: string; descriptionAr: string; descriptionEn: string; media: Media[]; videoUrl: string; featured: boolean; published: boolean; createdAt: string; updatedAt: string };
+export const postCategories = [
+  { id: 'news', ar: 'أخبار', en: 'News' },
+  { id: 'article', ar: 'مقالات', en: 'Articles' },
+  { id: 'event', ar: 'فعاليات', en: 'Events' },
+] as const;
 export type Settings = { aboutAr: string; aboutEn: string; socials: { tiktok: string; snapchat: string; facebook: string; telegram: string; instagram: string; youtube: string; whatsapp: string } };
 export type PublicData = { entries: Entry[]; settings: Settings };
 export const defaultSettings: Settings = {

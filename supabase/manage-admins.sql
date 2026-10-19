@@ -4,12 +4,7 @@
 -- Passwords are managed by Supabase Auth; never insert passwords in this table.
 
 -- 1. Grant or restore content administration to an existing account.
-insert into public.frame_admins (user_id, display_name, is_active)
-select id, 'اسم عضو الفريق', true
-from auth.users
-where lower(email) = lower('team@example.com')
-on conflict (user_id) do update
-set display_name = excluded.display_name, is_active = true;
+select public.frame_grant_admin('team@example.com', 'اسم عضو الفريق');
 
 -- 2. Revoke access, including API access from an already signed-in session.
 -- Select and execute this block ONLY when you intend to revoke this user.
