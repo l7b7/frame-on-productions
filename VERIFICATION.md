@@ -72,3 +72,11 @@ The DOM interaction suite now passes 19 checks: the prior 14, plus the new welco
 12. Revoked staff cannot refresh an authorized session.
 
 The 20 compiled Worker integration checks were rerun, including delivery of the new image and absence of admin links from public pages. Together these checks total 51. Mocked backend checks do not exercise an actual Supabase project or SQL deployment. Visual browser rendering remains unverified in this environment.
+
+## Clean installation for external hosting
+
+The first GitHub publication exposed a portability defect in the earlier npm lockfile: it referenced nine dependency symlinks from the Sites development checkout. That lockfile was replaced with a registry-based npm lock generated in a separate directory containing no shared `node_modules`. The exported manifest also now includes the `clsx` and `tailwind-merge` dependencies imported by `lib/utils.ts`.
+
+After the correction, a fresh `npm ci --no-audit --no-fund` installed the application dependencies in that isolated directory, and `npm run build` completed successfully, including the TypeScript check and generation of public pages. All 65 lockfile package entries are portable, with no local dependency links or filesystem resolution paths. This clean installation supersedes the earlier build verification that used the development checkout's shared dependencies.
+
+Live hosting status must be read from Vercel separately. Supabase accounts, storage and environment variables still require the owner's configuration.
