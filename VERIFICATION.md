@@ -115,3 +115,12 @@ Session lookup and password submission have a 20-second timeout, clear their tim
 Five behavior checks passed against the exact timeout helper after removing its type annotations, with request, clock and AbortController doubles: response/payload preservation, authorization error preservation, network error preservation, timeout duration, and aborted-request messaging/timer cleanup. These are isolated JavaScript checks, not browser or real Supabase login tests. The previous UI check that expected an unconfigured submit button to be disabled describes the old behavior and is superseded by this revision.
 
 Supabase confirmed one account with a password, a confirmed email, active admin membership and no current ban. Production inspection through the Vercel connector returned 403 for the deployment's project/team; the public web retrieval tool could not read its URL. The local execution environment and supplied image paths were unavailable. A fresh build is tracked by Vercel's status on the new GitHub commit. A real browser login and upload still need verification after deployment using the owner's account.
+
+
+## Production connection diagnostics — 20 October 2026
+
+The owner reported the new HTTP 503 configuration message, confirming the deployed server could not find one or more required Supabase settings. The active Vercel connection returned no visible teams and previously denied access to the deployment's project/team with 403, so production values could not be inspected or changed through that connection.
+
+The session response and unconfigured login response now include `configurationMissing`, containing only canonical variable names. The login error lists the missing names directly. Server-side reads normalize incidental whitespace and retain both modern and legacy key aliases. Key values never appear in these diagnostics.
+
+Eight isolated configuration checks passed against the changed helper after removing its single parameter type annotation: empty settings, URL only, each individual missing key, modern settings with whitespace, legacy settings, blank-modern/valid-legacy fallback, and whitespace-only rejection without value disclosure. These checks do not confirm the owner's saved Vercel values. Actual production connection, browser login and upload remain pending until the missing values are saved on the project serving the production domain and a new deployment loads them.

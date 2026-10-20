@@ -4,10 +4,12 @@ import { cookies } from 'next/headers';
 import { defaultSettings, type Entry, type Settings, type Media } from '@/lib/content';
 import { validSignature, MAX_MEDIA_BYTES } from '@/lib/validation';
 import { HttpError } from '@/lib/errors';
-export type AdminSession = { authenticated:boolean; authorized:boolean; name:string; mode:'sites'|'supabase'; configured:boolean; signInUrl:string; signOutUrl:string };
-const config=()=>({url:(process.env.SUPABASE_URL||'').replace(/\/$/,''),anon:process.env.SUPABASE_PUBLISHABLE_KEY||process.env.SUPABASE_ANON_KEY||'',service:process.env.SUPABASE_SECRET_KEY||process.env.SUPABASE_SERVICE_ROLE_KEY||''});
+export type AdminSession = { authenticated:boolean; authorized:boolean; name:string; mode:'sites'|'supabase'; configured:boolean; configurationMissing?:string[]; signInUrl:string; signOutUrl:string };
+const cleanEnv=(value:string|undefined)=>value?.trim()||'';
+const config=()=>({url:cleanEnv(process.env.SUPABASE_URL).replace(/\/$/,''),anon:cleanEnv(process.env.SUPABASE_PUBLISHABLE_KEY)||cleanEnv(process.env.SUPABASE_ANON_KEY),service:cleanEnv(process.env.SUPABASE_SECRET_KEY)||cleanEnv(process.env.SUPABASE_SERVICE_ROLE_KEY)});
+const missingConfiguration=()=>{const c=config();return [['SUPABASE_URL',c.url],['SUPABASE_PUBLISHABLE_KEY',c.anon],['SUPABASE_SECRET_KEY',c.service]].filter(([,value])=>!value).map(([name])=>name);};
 const bucketName='frameon-media';
-const isConfigured=()=>{const c=config();return !!(c.url&&c.anon&&c.service);};
+const isConfigured=()=>missingConfiguration().length===0;
 async function service(path:string,init:RequestInit={}):Promise<Response>{const c=config();if(!isConfigured())throw new Error('Supabase is not configured.');const headers=new Headers(init.headers);headers.set('apikey',c.service);if(c.service.startsWith('sb_secret_'))headers.delete('Authorization');else headers.set('Authorization',`Bearer ${c.service}`);return fetch(`${c.url}${path}`,{...init,headers,cache:'no-store'});}
 async function must(res:Response){if(!res.ok){console.error('Storage/database response',res.status);throw new Error('Database or storage request failed.');}return res;}
 async function tokenUser(token:string){const c=config();const r=await fetch(`${c.url}/auth/v1/user`,{headers:{apikey:c.anon,Authorization:`Bearer ${token}`},cache:'no-store'});return r.ok?await r.json() as {id:string;email?:string}:null;}
@@ -20,7 +22,7 @@ async function isAdmin(userId:string):Promise<boolean>{
 }
 async function setSession(tokens:{access_token:string;refresh_token:string;expires_in?:number}){const jar=await cookies();const base={httpOnly:true,secure:process.env.NODE_ENV==='production',sameSite:'strict' as const,path:'/'};jar.set('frame_session',tokens.access_token,{...base,maxAge:Math.max(60,Math.min(tokens.expires_in||3600,3600))});jar.set('frame_refresh',tokens.refresh_token,{...base,maxAge:60*60*24*7});}
 export async function adminSession():Promise<AdminSession>{
-  const empty:AdminSession={authenticated:false,authorized:false,name:'',mode:'supabase',configured:isConfigured(),signInUrl:'/admin',signOutUrl:'/admin'};
+  const empty:AdminSession={authenticated:false,authorized:false,name:'',mode:'supabase',configured:isConfigured(),configurationMissing:missingConfiguration(),signInUrl:'/admin',signOutUrl:'/admin'};
   if(!isConfigured())return empty;const jar=await cookies();const token=jar.get('frame_session')?.value;let user=token?await tokenUser(token):null;let authorized=false;
   if(user)authorized=await isAdmin(user.id);
   else{const refresh=jar.get('frame_refresh')?.value;if(refresh){const c=config();const r=await fetch(`${c.url}/auth/v1/token?grant_type=refresh_token`,{method:'POST',headers:{apikey:c.anon,'Content-Type':'application/json'},body:JSON.stringify({refresh_token:refresh}),cache:'no-store'});if(r.ok){const tokens=await r.json() as {access_token:string;refresh_token:string;expires_in:number};user=await tokenUser(tokens.access_token);if(user){authorized=await isAdmin(user.id);if(authorized)await setSession(tokens);}}}}
@@ -49,7 +51,7 @@ export async function readMedia(key:string,request:Request){if(!isConfigured())r
 export async function passwordLogin(request:Request):Promise<Response>{
   const generic=()=>Response.json({error:'البريد أو كلمة المرور غير صحيح، أو هذا الحساب غير مخوّل.'},{status:401,headers:{'Cache-Control':'no-store'}});
   if(request.headers.get('origin')!==new URL(request.url).origin)return new Response('Forbidden',{status:403});
-  if(!isConfigured())return Response.json({error:'إعدادات الاتصال غير مكتملة بهالنسخة. احفظ متغيرات Supabase في Production بمشروع Vercel المرتبط بهذا الرابط، ثم أعد النشر.'},{status:503,headers:{'Cache-Control':'no-store'}});
+  if(!isConfigured())return Response.json({error:`إعدادات Vercel الناقصة في النسخة الحالية: ${missingConfiguration().join('، ')}. أضف القيم إلى Production بالمشروع المرتبط بهذا الرابط ثم أعد النشر.`,configurationMissing:missingConfiguration()},{status:503,headers:{'Cache-Control':'no-store'}});
   if(!request.headers.get('content-type')?.includes('application/json'))return new Response('Invalid request',{status:415});
   const raw=await request.text();if(raw.length>5000)return new Response('Request too large',{status:413});let payload:{email?:unknown;password?:unknown};try{payload=JSON.parse(raw);}catch{return generic();}
   if(typeof payload.email!=='string'||typeof payload.password!=='string'||payload.email.length>254||payload.password.length>256)return generic();
