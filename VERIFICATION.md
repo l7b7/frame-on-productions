@@ -94,3 +94,13 @@ Validation for this revision:
 - 24 React/JSDOM interaction checks passed, including the staff journal tab, default draft state, category choices, public category filtering, draft exclusion and opening the selected article. These checks do not perform visual browser rendering.
 
 The live admin URL returned HTTP 200; its session endpoint reported `configured:false`, and unauthenticated entries requests returned 401 before this update. The installed Vercel connector returned 403 for the known project scope, and no authenticated Vercel CLI was available. Actual Supabase schema execution, real staff login and media uploads remain unverified until the owner configures a Supabase project and production environment keys. No production test content or staff account was created.
+
+## Supabase initialization — 20 October 2026
+
+The owner supplied project `ekmjwxygttypbyiigjei` (`frame-on-productions`). The connected Supabase tools confirmed an active, healthy project with no public application tables, Auth accounts or media bucket. The committed `supabase/setup.sql` was then applied successfully as migration `20261020034645_frame_on_initial_cms`.
+
+Database verification confirmed all three application tables, RLS enabled, no direct table access for anonymous/authenticated browser roles, and explicit server-role read/write grants. The admin grant helper uses security invoker and cannot be executed by anonymous/authenticated roles. The `frameon-media` bucket is private, accepts the intended image/video MIME types, and enforces the 30 MB per-file limit.
+
+A transaction running as `service_role` successfully created, read, updated and deleted a draft, then rolled back. No test content was retained. Security Advisor returned only three informational `rls_enabled_no_policy` notices, one per server-only table; no public/user policy is needed for this access model. See [the advisor explanation](https://supabase.com/docs/guides/database/database-linter?lint=0008_rls_enabled_no_policy).
+
+The production session endpoint still returned HTTP 200 with `configured:false`. Auth accounts and active admin memberships were both zero at verification time. Real email/password login and media upload through Vercel remain untested until the owner creates a staff account, grants membership and saves the production connection keys. The Arabic setup guide now documents those steps using dashboard fields without requiring SQL.
