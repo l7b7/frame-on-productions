@@ -49,7 +49,7 @@ export async function readMedia(key:string,request:Request){if(!isConfigured())r
 export async function passwordLogin(request:Request):Promise<Response>{
   const generic=()=>Response.json({error:'البريد أو كلمة المرور غير صحيح، أو هذا الحساب غير مخوّل.'},{status:401,headers:{'Cache-Control':'no-store'}});
   if(request.headers.get('origin')!==new URL(request.url).origin)return new Response('Forbidden',{status:403});
-  if(!isConfigured())return Response.json({error:'اربط إعدادات Supabase أولاً.'},{status:503});
+  if(!isConfigured())return Response.json({error:'إعدادات الاتصال غير مكتملة بهالنسخة. احفظ متغيرات Supabase في Production بمشروع Vercel المرتبط بهذا الرابط، ثم أعد النشر.'},{status:503,headers:{'Cache-Control':'no-store'}});
   if(!request.headers.get('content-type')?.includes('application/json'))return new Response('Invalid request',{status:415});
   const raw=await request.text();if(raw.length>5000)return new Response('Request too large',{status:413});let payload:{email?:unknown;password?:unknown};try{payload=JSON.parse(raw);}catch{return generic();}
   if(typeof payload.email!=='string'||typeof payload.password!=='string'||payload.email.length>254||payload.password.length>256)return generic();

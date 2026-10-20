@@ -29,8 +29,8 @@ export default function AdminAccess({ session, busy, error, onLogin }: {
           <label htmlFor="admin-email">البريد الإلكتروني<input id="admin-email" required type="email" name="email" autoComplete="username" autoCapitalize="none" spellCheck={false} dir="ltr" placeholder="you@company.com" disabled={busy} /></label>
           <label htmlFor="admin-password">كلمة المرور<span className="admin-password-field"><input id="admin-password" required type={showPassword ? 'text' : 'password'} name="password" autoComplete="current-password" maxLength={256} dir="ltr" disabled={busy} /><button type="button" aria-label={showPassword ? 'إخفاء كلمة المرور' : 'إظهار كلمة المرور'} aria-pressed={showPassword} aria-controls="admin-password" onClick={() => setShowPassword(value => !value)}>{showPassword ? <EyeOff size={18} /> : <Eye size={18} />}</button></span></label>
           {error && <p className="error-message" role="alert">{error}</p>}
-          <button className="button full" disabled={busy || !session?.configured}>{busy ? <Loader2 className="spin" size={17} /> : <LockKeyhole size={17} />}{busy ? 'جارٍ تسجيل الدخول…' : 'دخول الاستوديو'}</button>
-          {!session?.configured && <p className="admin-access-note">تسجيل الدخول غير مفعّل بعد. تواصل ويا مسؤول الموقع لتجهيز حسابك.</p>}
+          <button type="submit" className="button full" disabled={busy}>{busy ? <Loader2 className="spin" size={17} /> : <LockKeyhole size={17} />}{busy ? 'جارٍ تسجيل الدخول…' : 'دخول الاستوديو'}</button>
+          {session?.configured === false && <p className="admin-access-note" role="status">الاتصال بخدمة الدخول غير مكتمل بهالنسخة المنشورة. تگدر تجرب الدخول حتى تظهر رسالة توضح الإعداد المطلوب.</p>}
         </form>}
         <div className="admin-access-security"><ShieldCheck size={16} /><span>مساحة خاصة للفريق المخوّل فقط.</span></div>
       </div>

@@ -104,3 +104,14 @@ Database verification confirmed all three application tables, RLS enabled, no di
 A transaction running as `service_role` successfully created, read, updated and deleted a draft, then rolled back. No test content was retained. Security Advisor returned only three informational `rls_enabled_no_policy` notices, one per server-only table; no public/user policy is needed for this access model. See [the advisor explanation](https://supabase.com/docs/guides/database/database-linter?lint=0008_rls_enabled_no_policy).
 
 The production session endpoint still returned HTTP 200 with `configured:false`. Auth accounts and active admin memberships were both zero at verification time. Real email/password login and media upload through Vercel remain untested until the owner creates a staff account, grants membership and saves the production connection keys. The Arabic setup guide now documents those steps using dashboard fields without requiring SQL.
+
+
+## Login form recovery — 20 October 2026
+
+The sign-in submit button no longer stays disabled because an earlier session probe reported an unconfigured backend. Only an in-flight submission disables it, and the server continues to enforce configuration, origin, password and active membership checks. Failed initial session probes now leave the login form available with the actual error message. Existing authorized sessions still use the dashboard load-error screen when loading content fails.
+
+Session lookup and password submission have a 20-second timeout, clear their timer on every completion path, and report a readable retry message. Login trims incidental whitespace from the email without changing the password. The unconfigured server response now identifies Production settings and redeployment as the required action; it never returns key values.
+
+Five behavior checks passed against the exact timeout helper after removing its type annotations, with request, clock and AbortController doubles: response/payload preservation, authorization error preservation, network error preservation, timeout duration, and aborted-request messaging/timer cleanup. These are isolated JavaScript checks, not browser or real Supabase login tests. The previous UI check that expected an unconfigured submit button to be disabled describes the old behavior and is superseded by this revision.
+
+Supabase confirmed one account with a password, a confirmed email, active admin membership and no current ban. Production inspection through the Vercel connector returned 403 for the deployment's project/team; the public web retrieval tool could not read its URL. The local execution environment and supplied image paths were unavailable. A fresh build is tracked by Vercel's status on the new GitHub commit. A real browser login and upload still need verification after deployment using the owner's account.
