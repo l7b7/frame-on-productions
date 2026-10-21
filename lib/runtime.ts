@@ -65,7 +65,8 @@ export async function signUpload(media:Media):Promise<{endpoint:string;token:str
     const url=new URL(`${base.origin}/storage/v1${data.url}`);const token=url.searchParams.get('token');
     if(url.origin!==base.origin||!token)throw new Error("Unexpected upload endpoint");
     if(base.hostname.endsWith('.supabase.co'))base.hostname=base.hostname.replace(/\.supabase\.co$/,'.storage.supabase.co');
-    return {endpoint:`${base.origin}/storage/v1/upload/resumable`,token,bucket:bucketName};
+    // Path-scoped upload tokens use the signed TUS route, not the JWT route
+    return {endpoint:`${base.origin}/storage/v1/upload/resumable/sign`,token,bucket:bucketName};
   }catch(error){if(controller.signal.aborted)throw new HttpError(504,"تأخر تجهيز الرفع جرّب مرة ثانية");throw error;}
   finally{clearTimeout(timer);}
 }

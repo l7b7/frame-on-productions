@@ -15,7 +15,8 @@ type Props = { count: number; disabled: boolean; onUploaded: (media: Media) => v
 
 function storageError(error: unknown): Error {
   const status = (error as { originalResponse?: { getStatus(): number } })?.originalResponse?.getStatus();
-  const message = status === 413 ? "التخزين رفض حجم الملف الحد الحالي 50 MB؛ للفيديو الأكبر استخدم رابط الفيديو الطويل"
+  const message = status === 400 ? "التخزين رفض طلب الرفع اختر الملفات من جديد؛ وإذا تكرر الخطأ راجع إعدادات الرفع"
+    : status === 413 ? "التخزين رفض حجم الملف الحد الحالي 50 MB؛ للفيديو الأكبر استخدم رابط الفيديو الطويل"
     : status === 401 || status === 403 ? "انتهت صلاحية إذن الرفع اختر الملف من جديد، وسجّل دخولك إذا طُلب منك"
     : status === 409 ? "يوجد رفع آخر لنفس الملف أوقفه ثم أعد المحاولة"
     : "توقف الاتصال بالتخزين بعد عدة محاولات اضغط «إعادة المحاولة» لاستكمال الرفع من هذه الصفحة";

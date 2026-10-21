@@ -85,9 +85,9 @@ try {
   await check('anonymous upload authorization is denied', async () => { cookies.clear(); assert.equal((await mediaRoute.POST(request(metadata))).status, 401); assert.equal(signedKeys.length, 0); });
   await check('revoked administrators cannot authorize or complete uploads', async () => { active = false; assert.equal((await mediaRoute.POST(request(metadata))).status, 403); assert.equal((await completeRoute.POST(request(media))).status, 403); });
   await check('cross-origin upload authorization is denied', async () => { assert.equal((await mediaRoute.POST(request(metadata, 'https://outside.test'))).status, 403); assert.equal(calls.length, 0); });
-  await check('35 MB upload receives only a scoped TUS token and the direct hostname', async () => {
+  await check('35 MB upload receives a scoped token and the signed TUS route on the direct hostname', async () => {
     const response = await mediaRoute.POST(request(metadata)); assert.equal(response.status, 200);
-    const plan = await response.json(); assert.equal(plan.mode, 'tus'); assert.equal(plan.endpoint, 'https://example.storage.supabase.co/storage/v1/upload/resumable');
+    const plan = await response.json(); assert.equal(plan.mode, 'tus'); assert.equal(plan.endpoint, 'https://example.storage.supabase.co/storage/v1/upload/resumable/sign');
     assert.equal(plan.token, 'path-scoped-fixture'); assert.equal(plan.bucket, 'frameon-media'); assert.match(plan.media.key, validation.mediaKeyPattern);
     assert.equal(JSON.stringify(plan).includes('sb_secret'), false); assert.equal(calls.some(call => call.method === 'PUT'), false);
   });
