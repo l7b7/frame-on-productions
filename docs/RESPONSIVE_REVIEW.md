@@ -39,4 +39,12 @@ Actual interactions verified:
 - The 21 isolated media/backend checks and 18 authentication/backend checks passed
 - The existing 24 React/JSDOM interaction checks passed
 
-The new layout and the prior resumable-upload changes still require deployment to the Vercel production project. The connected Vercel account denied that project/team with 403 in the preceding work. No production publication or successful upload of the revised interface is claimed by this record.
+## Production follow-up
+
+The existing GitHub integration automatically deployed `e25fac95eae239a0668e7bd692e7dbcd77efab5b` successfully to the canonical Vercel project. A direct browser check at `https://frame-on-productions.vercel.app/ar` confirmed the new hero, FO strip, oval CTAs and four contact fields. The hero CTAs measured 57 px high with a 999 px radius; contact inputs used 16 px text. The studio link selected the behind-the-scenes category, and the contact form prepared its local brief. The existing administrator session loaded the dashboard successfully.
+
+A synthetic production upload then exercised real browser image encoding: the 7.2 MiB PNG became a 1.9 MiB WebP, saving 74%. Storage rejected the initial TUS creation request with HTTP 400 / `AccessDenied` / `Invalid Compact JWS`. Storage logs and the upstream signed-upload example identified the route mismatch: scoped `x-signature` tokens require `/storage/v1/upload/resumable/sign`; the unsigned route expects JWT authentication. The runtime endpoint and regression assertion were corrected, and the 21 media/backend checks plus the production build passed again. See the upstream [signed example](https://github.com/supabase/supabase/blob/master/examples/storage/resumable-upload-signed-uppy/index.html) and [maintainer clarification](https://github.com/supabase/storage/issues/1268).
+
+After Vercel successfully deployed `ebdf38eb51cf79e30285de4699d31b9788110ed4`, both synthetic files completed the real browser upload and server confirmation flow. The saved **فحص الرفع والتجاوب — مسودة تجريبية خاصة** draft contains two private objects: a 1,969,834-byte WebP and a 37,828,039-byte MP4 (36.1 MiB, above the former 30 MiB limit). A database read confirmed `published = false` and two linked media records. Reopening the saved editor loaded the 2200 × 1400 image and the 1280 × 720, nine-second video; the video started playing without a media error. The synthetic draft is retained as private verification evidence and is not published. No owner file or account was removed or replaced.
+
+An HTTP request without an administrator session to the draft video's application media URL returned 404, confirming that the saved test file is not publicly readable through that route.

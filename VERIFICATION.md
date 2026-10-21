@@ -143,3 +143,13 @@ Production email/password sign-in was verified through the secure browser authen
 ## Mobile reading and navigation revision — 21 October 2026
 
 See [the responsive review](docs/RESPONSIVE_REVIEW.md) for the viewport measurements, interaction results, screenshot and deployment limits. The production Next.js build passed with the final responsive stylesheet. Public copy and rendered stored descriptions omit sentence-final points without changing stored records; phone, email, decimal and URL behavior is covered by `npm run test:copy`. The existing 21 media/backend, 18 authentication/backend and 24 DOM interaction checks passed during this revision. The staff login screen's return/visibility controls were increased to at least 44 px after the initial browser measurement.
+
+## Production deployment and real upload verification — 21 October 2026
+
+The GitHub integration successfully deployed the responsive revision `e25fac9` and signed-TUS correction `ebdf38e` to the canonical Vercel project. The production Arabic page visibly contained the updated hero, oval actions, FO strip, direct behind-the-scenes link and four-field contact brief. The direct link selected its category, the brief prepared locally, and the existing staff session loaded the dashboard. These observations supersede the earlier deployment blocker.
+
+The first live TUS attempt revealed HTTP 400 / `Invalid Compact JWS` at the unsigned route. Scoped upload tokens now use `/storage/v1/upload/resumable/sign`, matching the upstream signed-upload example. The endpoint assertion was updated; all 21 media/backend checks and the production Next.js build passed again.
+
+The real browser then compressed a synthetic PNG by 74%, uploaded it as a 1,969,834-byte WebP, uploaded a 37,828,039-byte MP4 through TUS, and successfully confirmed and saved both files as one private draft. Database reads verified two linked Storage objects and `published = false`. Reopening the editor loaded the image and video, and the nine-second video played without an error. The clearly named synthetic test draft remains private for review. This verifies uploads above 30 MiB within the current 50 MiB limit; it does not enable larger native files or browser video transcoding.
+
+An unauthenticated HTTP range request to that draft video's application media route returned 404. The private draft is therefore not exposed to public visitors through this route.
