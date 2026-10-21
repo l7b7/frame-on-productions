@@ -76,9 +76,11 @@ label { font-size:14px; color:#f7f5f1; }
 .service-row>h3>button>svg { flex-shrink:0; }
 .service-num { font-size:13px; color:#bab2c2; }
 .service-row.active>h3>button { background:#d0272d15; border-color:#d0272d70; }
-.service-detail { padding-inline:22px; }
-.service-detail h4 { font-size:21px; }
-.studio .service-detail>p { font-size:16px; }
+.service-detail,.lang-en .service-detail { padding:18px 22px 28px; }
+.service-detail:not([hidden]) { display:flex; justify-content:center; }
+.service-detail>.service-work-button,.lang-en .service-detail>.service-work-button { width:100%; max-width:380px; min-height:66px; padding:17px 24px; justify-content:center; text-align:center; font-size:18px; font-weight:700; line-height:1.7; white-space:normal; border:1px solid #b7a16e; border-radius:999px; background:#b7a16e0d; color:#f6f0e3; }
+.service-detail>.service-work-button:hover { background:#b7a16e24; border-color:#d1bb89; color:#fff; }
+.service-detail>.service-work-button:focus-visible { outline-color:#d1bb89; }
 .tags>span { display:inline-flex; align-items:center; border-radius:999px; padding:6px 13px; min-height:36px; font-size:13px; color:#e9dfe8; background:#ffffff06; border-color:#ffffff25; }
 .work-anchor { display:block; height:0; scroll-margin-top:120px; }
 .work-filters { max-width:100%; gap:10px; padding-block:5px 17px; overscroll-behavior-inline:contain; }
@@ -216,7 +218,7 @@ a.social-tiktok:hover { background:#202027; border-color:#25f4ee; }
   .service-list { width:100%; }
   .service-row>h3>button { font-size:17px; padding:15px; gap:12px; }
   .service-num { width:24px; }
-  .service-detail,.lang-en .service-detail { padding:12px 15px 26px; }
+  .service-detail,.lang-en .service-detail { padding:12px 0 26px; }
   .work-filters>button { font-size:14px; min-height:46px; }
   .work-empty { padding:28px 22px; }
   .work-empty h3 { font-size:25px; }

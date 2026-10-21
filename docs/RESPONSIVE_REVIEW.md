@@ -48,3 +48,11 @@ A synthetic production upload then exercised real browser image encoding: the 7.
 After Vercel successfully deployed `ebdf38eb51cf79e30285de4699d31b9788110ed4`, both synthetic files completed the real browser upload and server confirmation flow. The saved **فحص الرفع والتجاوب — مسودة تجريبية خاصة** draft contains two private objects: a 1,969,834-byte WebP and a 37,828,039-byte MP4 (36.1 MiB, above the former 30 MiB limit). A database read confirmed `published = false` and two linked media records. Reopening the saved editor loaded the 2200 × 1400 image and the 1280 × 720, nine-second video; the video started playing without a media error. The synthetic draft is retained as private verification evidence and is not published. No owner file or account was removed or replaced.
 
 An HTTP request without an administrator session to the draft video's application media URL returned 404, confirming that the saved test file is not publicly readable through that route.
+
+## Service category actions — 21 October 2026
+
+Each of the ten expanded service categories now contains only its work-preview button. The category-specific heading, paragraph, tags and extra inline arrow were removed from these panels. The shared action is centered, uses an ivory 18 px label, a muted gold border and a 999 px radius, and selects the matching work category when pressed. On phones it uses the available row width; on desktop its width is capped at 380 px.
+
+The actual component and stylesheet preview passed all ten category-opening and work-selection interactions in both Arabic and English. Every panel contained exactly one button and no heading, paragraph, tag group or icon. Final 320 px checks in both languages measured the button at 265 × approximately 66.6 px with no text overflow. At 390 px the Arabic button measured 327 × approximately 66.6 px and was centered with zero offset. Tablet/desktop checks at 768 and 1440 px also showed centered buttons and no page-width overflow. This is Chrome CSS viewport QA rather than physical iOS or Android hardware testing. The production Next.js build, including TypeScript, passed with the final source.
+
+![Service button at a 390 × 844 CSS viewport](qa/service-button-390.jpg)
