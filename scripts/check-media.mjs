@@ -29,6 +29,7 @@ try {
     await writeFile(output(source), ts.transpileModule(text, { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ES2022 } }).outputText);
   }
   const runtime = await import(pathToFileURL(output('lib/runtime.ts')).href);
+  const content = await import(pathToFileURL(output('lib/content.ts')).href);
   const validation = await import(pathToFileURL(output('lib/validation.ts')).href);
   const mediaRoute = await import(pathToFileURL(output('app/api/admin/media/route.ts')).href);
   const completeRoute = await import(pathToFileURL(output('app/api/admin/media/complete/route.ts')).href);
@@ -40,7 +41,7 @@ try {
   const key = 'media/22222222-2222-4222-8222-222222222222.mp4';
   const media = { key, name: 'film.mp4', mime: 'video/mp4', size: 35 * 1024 * 1024 };
   const bytes = new Uint8Array(32); bytes.set([0,0,0,24,102,116,121,112,109,112,52,50]);
-  let signedIn, active, objectSize, objectMime, objectBytes, storageStatus, stuckCancel, blockedRead, rows, deletes, calls, signedKeys;
+  let signedIn, active, objectSize, objectMime, objectBytes, storageStatus, stuckCancel, blockedRead, rows, deletes, calls, signedKeys, objects;
   const json = (body, status = 200) => Response.json(body, { status });
   const cookies = new Map();
   globalThis.__frameMediaCookies = { get: name => cookies.has(name) ? { value: cookies.get(name) } : undefined, set: (name, value) => cookies.set(name, value) };
@@ -60,7 +61,8 @@ try {
       if (init.method === 'DELETE') { deletes++; return json({}); }
       if (storageStatus !== 200) return json({}, storageStatus);
       if (blockedRead) return new Promise((resolve, reject) => init.signal.addEventListener('abort', () => reject(new DOMException('Aborted', 'AbortError')), { once: true }));
-      return new Response(new ReadableStream({ start(controller) { controller.enqueue(objectBytes); if (!stuckCancel) controller.close(); }, cancel() { if (stuckCancel) return new Promise(() => {}); } }), { headers: { 'content-type': objectMime, 'content-length': String(objectSize) } });
+      const object = objects.get(decodeURIComponent(url.pathname.split('/frameon-media/')[1])) || { size: objectSize, mime: objectMime, bytes: objectBytes };
+      return new Response(new ReadableStream({ start(controller) { controller.enqueue(object.bytes); if (!stuckCancel) controller.close(); }, cancel() { if (stuckCancel) return new Promise(() => {}); } }), { headers: { 'content-type': object.mime, 'content-length': String(object.size) } });
     }
     if (url.pathname === '/rest/v1/entries') {
       if (init.method === 'POST') { rows.push(JSON.parse(init.body)); return json([]); }
@@ -76,7 +78,7 @@ try {
     Object.assign(process.env, { SUPABASE_URL: 'https://example.supabase.co', SUPABASE_SECRET_KEY: 'sb_secret_fixture', SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_fixture', SUPABASE_SERVICE_ROLE_KEY: '', SUPABASE_ANON_KEY: '' });
     cookies.clear(); cookies.set('frame_session', 'fixture-session'); signedIn = active = true;
     objectSize = media.size; objectMime = media.mime; objectBytes = bytes; storageStatus = 200;
-    stuckCancel = blockedRead = false; rows = []; deletes = 0; calls = []; signedKeys = [];
+    stuckCancel = blockedRead = false; rows = []; deletes = 0; calls = []; signedKeys = []; objects = new Map();
     globalThis.fetch = http; globalThis.setTimeout = originalTimeout;
   }
   const request = (value, origin = 'https://frameon.test', type = 'application/json') => new Request('https://frameon.test/api/admin/media', { method: 'POST', headers: { origin, 'content-type': type }, body: type === 'application/json' ? JSON.stringify(value) : 'fixture' });
@@ -128,6 +130,43 @@ try {
     assert.equal((await runtime.listEntries()).length, 0); cookies.clear(); assert.equal((await runtime.readMedia(key, new Request('https://frameon.test/api/media/' + key))).status, 404);
     cookies.set('frame_session', 'fixture-session'); assert.equal((await updateRoute.PUT(request({ ...entry, published: true }), { params: Promise.resolve({ id: entry.id }) })).status, 200);
     assert.equal((await runtime.listEntries()).length, 1); cookies.clear(); const publicMedia = await runtime.readMedia(key, new Request('https://frameon.test/api/media/' + key)); assert.equal(publicMedia.status, 200); await publicMedia.body.cancel();
+  });
+  const cover = { key: 'media/33333333-3333-4333-8333-333333333333.webp', name: 'cover.webp', mime: 'image/webp', size: 32000, role: 'thumbnail' };
+  const coverBytes = new TextEncoder().encode('RIFF1234WEBP fixture image bytes');
+  await check('a separate image cover and uploaded video survive draft save publish and replacement', async () => {
+    objects.set(cover.key, { size: cover.size, mime: cover.mime, bytes: coverBytes });
+    const saved = await entryRoute.POST(request({ ...draft, media: [media, cover] })); assert.equal(saved.status, 201);
+    const { entry } = await saved.json(); assert.equal(content.entryThumbnail(entry).key, cover.key);
+    assert.deepEqual(entry.media, [media, cover]); cookies.clear();
+    assert.equal((await runtime.readMedia(cover.key, new Request('https://frameon.test/api/media/' + cover.key))).status, 404);
+    cookies.set('frame_session', 'fixture-session');
+    const response = await updateRoute.PUT(request({ ...entry, published: true }), { params: Promise.resolve({ id: entry.id }) });
+    assert.equal(response.status, 200); const published = await runtime.listEntries(); assert.equal(published[0].media[1].role, 'thumbnail');
+    cookies.clear(); const result = await runtime.readMedia(cover.key, new Request('https://frameon.test/api/media/' + cover.key)); assert.equal(result.status, 200); await result.body.cancel();
+    const replacement = { ...cover, key: cover.key.replace('33333333-', '44444444-') };
+    const changed = content.withThumbnail(entry.media, replacement); assert.deepEqual(changed, [replacement, media]);
+  });
+  await check('video covers reject non-images and multiple custom covers before any save', async () => {
+    assert.equal((await entryRoute.POST(request({ ...draft, media: [{ ...media, role: 'thumbnail' }] }))).status, 400);
+    assert.equal((await entryRoute.POST(request({ ...draft, media: [cover, { ...cover, key: cover.key.replace('33333333-', '44444444-') }] }))).status, 400);
+    assert.equal(rows.length, 0);
+  });
+  await check('long linked videos persist an optional uploaded cover', async () => {
+    objects.set(cover.key, { size: cover.size, mime: cover.mime, bytes: coverBytes });
+    const response = await entryRoute.POST(request({ ...draft, media: [cover], videoUrl: 'https://vimeo.com/123456789', published: true }));
+    assert.equal(response.status, 201); const { entry } = await response.json(); assert.equal(content.entryThumbnail(entry).key, cover.key);
+    assert.equal((await runtime.listEntries())[0].media[0].role, 'thumbnail');
+  });
+  await check('legacy mixed galleries find their image cover and embedded autoplay is opt-in', async () => {
+    const image = { ...cover }; delete image.role;
+    assert.equal(content.entryThumbnail({ media: [media, image] }).key, cover.key);
+    assert.equal(content.entryThumbnail({ media: [media] }), undefined);
+    for (const url of ['https://youtu.be/dQw4w9WgXcQ', 'https://vimeo.com/123456789']) {
+      assert.equal(new URL(content.videoEmbed(url)).searchParams.has('autoplay'), false);
+      assert.equal(new URL(content.videoEmbed(url, true)).searchParams.get('autoplay'), '1');
+      assert.equal(new URL(content.videoEmbed(url, true)).searchParams.get('playsinline'), '1');
+    }
+    assert.equal(content.videoEmbed('https://outside.test/video', true), null);
   });
   await check('long YouTube video links publish without a binary upload', async () => { const response = await entryRoute.POST(request({ ...draft, media: [], videoUrl: 'https://youtu.be/dQw4w9WgXcQ', published: true })); assert.equal(response.status, 201); assert.equal(signedKeys.length, 0); });
   await check('untrusted video link hosts are rejected', async () => { assert.equal((await entryRoute.POST(request({ ...draft, media: [], videoUrl: 'https://outside.test/video' }))).status, 400); });

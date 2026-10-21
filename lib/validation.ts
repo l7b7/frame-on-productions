@@ -4,13 +4,14 @@ export const supportedMimes = ['image/jpeg', 'image/png', 'image/webp', 'image/g
 // The connected Supabase Free project permits at most 50 MiB per file.
 export const MAX_MEDIA_BYTES = 50 * 1024 * 1024;
 export const mediaKeyPattern = /^media\/[0-9a-f-]{36}\.(jpg|png|webp|gif|mp4|webm)$/;
-export const mediaSchema = z.object({ key: z.string().regex(mediaKeyPattern), name: z.string().trim().min(1).max(180), mime: z.string().refine(v => supportedMimes.includes(v)), size: z.number().int().positive().max(MAX_MEDIA_BYTES) });
+export const mediaSchema = z.object({ key: z.string().regex(mediaKeyPattern), name: z.string().trim().min(1).max(180), mime: z.string().refine(v => supportedMimes.includes(v)), size: z.number().int().positive().max(MAX_MEDIA_BYTES), role: z.literal('thumbnail').optional() }).refine(value => value.role !== 'thumbnail' || value.mime.startsWith('image/'), { message: 'غلاف الفيديو لازم يكون صورة', path: ['role'] });
 export const entrySchema = z.object({
   kind: z.enum(['project', 'team', 'post']), category: z.string(),
   titleAr: z.string().trim().min(1).max(180), titleEn: z.string().trim().min(1).max(180),
   descriptionAr: z.string().trim().max(6000).default(''), descriptionEn: z.string().trim().max(6000).default(''),
   media: z.array(mediaSchema).max(12).default([]), videoUrl: z.string().max(300).refine(v => !v || !!videoEmbed(v), "Use a valid HTTPS YouTube or Vimeo URL").default(''), featured: z.boolean().default(false), published: z.boolean().default(false),
 }).superRefine((value, ctx) => {
+  if (value.media.filter(m => m.role === 'thumbnail').length > 1) ctx.addIssue({ code: 'custom', path: ['media'], message: 'اختَر صورة غلاف واحدة لكل محتوى' });
   const validCategory = value.kind === 'post' ? postCategories.some(c => c.id === value.category) : categories.some(c => c.id === value.category);
   if (!validCategory) ctx.addIssue({code:'custom',path:['category'],message:"اختر تصنيفاً يناسب نوع المحتوى"});
   if (value.kind === 'project' && value.published && value.media.length === 0 && !value.videoUrl) ctx.addIssue({code: 'custom', path: ['media'], message: "أضف صورة أو فيديو قبل نشر العمل"});

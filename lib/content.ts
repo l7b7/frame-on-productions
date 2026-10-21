@@ -1,6 +1,6 @@
 import { displayText } from './display-text';
 export type Lang = 'ar' | 'en';
-export type Media = { key: string; name: string; mime: string; size: number };
+export type Media = { key: string; name: string; mime: string; size: number; role?: 'thumbnail' };
 export type Entry = { id: string; kind: 'project' | 'team' | 'post'; category: string; titleAr: string; titleEn: string; descriptionAr: string; descriptionEn: string; media: Media[]; videoUrl: string; featured: boolean; published: boolean; createdAt: string; updatedAt: string };
 export const postCategories = [
   { id: 'news', ar: 'أخبار', en: 'News' },
@@ -31,16 +31,20 @@ export const categories = [
   { id: 'studio-heart', ar: 'قلب الاستديو', en: 'Studio heart', shortAr: '', shortEn: '', descAr: '', descEn: '', tagsAr: [], tagsEn: [] },
 ] as const;
 export const mediaUrl = (m: Media) => `/api/media/${m.key}`;
+export const entryThumbnail = (entry: Pick<Entry, 'media'>) => entry.media.find(m => m.role === 'thumbnail' && m.mime.startsWith('image/')) || entry.media.find(m => m.mime.startsWith('image/'));
+export function withThumbnail(media: Media[], thumbnail: Media): Media[] {
+  return [{ ...thumbnail, role: 'thumbnail' }, ...media.filter(m => m.role !== 'thumbnail' && m.key !== thumbnail.key)];
+}
 export const textOf = (e: Entry, field: 'title' | 'description', l: Lang) => displayText(l === 'ar' ? e[field === 'title' ? 'titleAr' : 'descriptionAr'] : e[field === 'title' ? 'titleEn' : 'descriptionEn']);
-export function videoEmbed(raw: string): string | null {
+export function videoEmbed(raw: string, autoplay = false): string | null {
   if (!raw) return null;
   try {
     const u = new URL(raw); if (u.protocol !== 'https:') return null;
     const host = u.hostname.toLowerCase().replace(/^www\./, ''); let id = '';
     if (host === 'youtu.be') id = u.pathname.slice(1);
     if (host === 'youtube.com') id = u.searchParams.get('v') || (u.pathname.startsWith('/shorts/') ? u.pathname.split('/')[2] : '');
-    if (/^[A-Za-z0-9_-]{11}$/.test(id)) return `https://www.youtube-nocookie.com/embed/${id}`;
-    if (host === 'vimeo.com' && /^\/\d+$/.test(u.pathname)) return `https://player.vimeo.com/video/${u.pathname.slice(1)}`;
+    if (/^[A-Za-z0-9_-]{11}$/.test(id)) return `https://www.youtube-nocookie.com/embed/${id}${autoplay ? '?autoplay=1&playsinline=1' : ''}`;
+    if (host === 'vimeo.com' && /^\/\d+$/.test(u.pathname)) return `https://player.vimeo.com/video/${u.pathname.slice(1)}${autoplay ? '?autoplay=1&playsinline=1' : ''}`;
     return null;
   } catch { return null; }
 }

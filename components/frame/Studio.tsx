@@ -1,7 +1,8 @@
 'use client';
+import { flushSync } from 'react-dom';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { ArrowDown, ArrowUpLeft, ArrowUpRight, Clapperboard, Code2, ShieldCheck, Play, Menu, X, Plus, Check, Copy, Camera } from 'lucide-react';
-import { categories, postCategories, type Entry, type Lang, type PublicData, mediaUrl, textOf, videoEmbed } from '@/lib/content';
+import { categories, postCategories, type Entry, type Lang, type PublicData, mediaUrl, textOf, videoEmbed, entryThumbnail } from '@/lib/content';
 import Updates from './Updates';
 import Brand from './Brand';
 import ServicesMenu from './ServicesMenu';
@@ -17,6 +18,10 @@ export default function Studio({lang,initial}: {lang: Lang; initial: PublicData}
   const [toast,setToast] = useState(''); const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const dialog = useRef<HTMLDialogElement>(null); const [brief,setBrief] = useState('');
   const [briefCopied,setBriefCopied] = useState(false);
+  const player = useRef<HTMLVideoElement>(null);
+  const [playbackBlocked,setPlaybackBlocked] = useState(false);
+  const primaryVideo = selected?.media.find(media => media.mime.startsWith('video/'));
+  const selectedCover = selected && entryThumbnail(selected);
   const arrow = ar ? <ArrowUpLeft size={18}/> : <ArrowUpRight size={18}/>;
   const projects = initial.entries.filter(e => e.kind === 'project'); const team = initial.entries.filter(e => e.kind === 'team');
   const shown = filter === 'all' ? projects : projects.filter(e => e.category === filter);
@@ -37,10 +42,30 @@ export default function Studio({lang,initial}: {lang: Lang; initial: PublicData}
     return () => { obs.disconnect(); if(toastTimer.current) clearTimeout(toastTimer.current); };
   },[lang,ar]);
   useEffect(() => {
-    if(selected) {dialog.current?.showModal(); document.body.style.overflow='hidden';}
-    else {dialog.current?.close(); document.body.style.overflow='';}
-    return () => {document.body.style.overflow='';};
+    if (!selected) return;
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = previous; };
   },[selected]);
+  function playVideo(video: HTMLVideoElement) {
+    setPlaybackBlocked(false);
+    // Called in the original click so mobile browsers retain user activation.
+    void video.play().catch(error => {
+      if (error.name !== 'AbortError' && player.current === video && dialog.current?.open) setPlaybackBlocked(true);
+    });
+  }
+  function openEntry(entry: Entry) {
+    // Mount the player before invoking the browser media API in this same gesture.
+    flushSync(() => { setPlaybackBlocked(false); setSelected(entry); });
+    dialog.current?.showModal();
+    if (dialog.current) dialog.current.scrollTop = 0;
+    if (player.current) playVideo(player.current);
+  }
+  function closeEntry() {
+    dialog.current?.querySelectorAll('video').forEach(video => video.pause());
+    if (dialog.current?.open) dialog.current.close();
+    setSelected(null); setPlaybackBlocked(false);
+  }
   function pickService(id: string) { setActiveService(id); setFilter(id); setMenu(false); document.getElementById('services')?.scrollIntoView({behavior:'smooth'}); }
   function createBrief(event: FormEvent<HTMLFormElement>) {
     event.preventDefault(); const f = new FormData(event.currentTarget);
@@ -107,7 +132,7 @@ export default function Studio({lang,initial}: {lang: Lang; initial: PublicData}
         <div className="section-label mono" dir="ltr"><span className="rec-dot"/>03 / THE WORK</div>
         <div className="section-heading" data-reveal><h2>{t("حكايات تنشاف","Stories you can see")}</h2><p>{t("مساحة لأعمالنا، ولكل مشهد نصنعه","A place for our work, and every scene we create")}</p></div>
         <div className="work-filters" role="group" aria-label={t('تصفية الأعمال حسب القسم','Filter projects by category')}><button className={filter==='all'?'selected':''} aria-pressed={filter==='all'} onClick={()=>setFilter('all')}>{t('كل الأعمال','All work')}</button>{categories.map(c=><button key={c.id} className={filter===c.id?'selected':''} aria-pressed={filter===c.id} onClick={()=>setFilter(c.id)}>{ar?c.ar:c.en}</button>)}</div>
-        {shown.length>0?<div className="project-grid">{shown.map((e,i)=><button className={`project-card ${i===0?'featured-card':''}`} key={e.id} onClick={()=>setSelected(e)}><div className="project-thumb">{e.media[0]?.mime.startsWith('image/')?<img src={mediaUrl(e.media[0])} alt={textOf(e,'title',lang)} loading="lazy"/>:e.media[0]?.mime.startsWith('video/')?<video src={mediaUrl(e.media[0])} muted playsInline preload="metadata"/>:<div className="video-placeholder"><Clapperboard size={52}/></div>}<span className="project-play"><Play size={20} fill="currentColor"/></span>{e.featured&&<span className="project-featured">{t('عمل مختار','SELECTED WORK')}</span>}</div><div className="project-caption"><div><span className="project-category">{categories.find(c=>c.id===e.category)?.[lang]}</span><h3>{textOf(e,'title',lang)}</h3></div>{arrow}</div></button>)}</div>:<div className="work-empty"><div className="empty-frame" aria-hidden="true"><span className="mono">F / O</span><Camera size={36}/><span className="mono">THE NEXT SCENE</span></div><div><span className="eyebrow">COMING INTO FRAME</span><h3>{t("المشهد الجاي ممكن يكون إلك","The next scene could be yours")}</h3><p>{filter==='all'?t("نختار أعمالنا بعناية قريباً، حكايات جديدة تنعرض هنا","We curate our work with care New stories will be shared here soon"):t("قريباً نشارك أعمال هذا القسم خل نحچي عن فكرتك","We will share work in this category soon Let’s talk about your idea")}</p><a className="inline-link" href="#contact">{t('خلّينا نسمع فكرتك','Tell us what you have in mind')}{arrow}</a></div></div>}
+        {shown.length>0?<div className="project-grid">{shown.map((e,i)=><button className={`project-card ${i===0?'featured-card':''}`} key={e.id} onClick={()=>openEntry(e)}><div className="project-thumb">{entryThumbnail(e)?<img src={mediaUrl(entryThumbnail(e)!)} alt={textOf(e,'title',lang)} loading="lazy"/>:(e.videoUrl||e.media.some(m=>m.mime.startsWith('video/')))?<img src="/hero-cinema.png" alt="" loading="lazy"/>:<div className="video-placeholder"><Clapperboard size={52}/></div>}<span className="project-play"><Play size={20} fill="currentColor"/></span>{e.featured&&<span className="project-featured">{t('عمل مختار','SELECTED WORK')}</span>}</div><div className="project-caption"><div><span className="project-category">{categories.find(c=>c.id===e.category)?.[lang]}</span><h3>{textOf(e,'title',lang)}</h3></div>{arrow}</div></button>)}</div>:<div className="work-empty"><div className="empty-frame" aria-hidden="true"><span className="mono">F / O</span><Camera size={36}/><span className="mono">THE NEXT SCENE</span></div><div><span className="eyebrow">COMING INTO FRAME</span><h3>{t("المشهد الجاي ممكن يكون إلك","The next scene could be yours")}</h3><p>{filter==='all'?t("نختار أعمالنا بعناية قريباً، حكايات جديدة تنعرض هنا","We curate our work with care New stories will be shared here soon"):t("قريباً نشارك أعمال هذا القسم خل نحچي عن فكرتك","We will share work in this category soon Let’s talk about your idea")}</p><a className="inline-link" href="#contact">{t('خلّينا نسمع فكرتك','Tell us what you have in mind')}{arrow}</a></div></div>}
       </section>
 
       <section className="digital-section" id="digital"><div className="digital-content"><div className="section-label mono" dir="ltr"><span className="rec-dot"/>04 / BEYOND THE FRAME</div><span className="eyebrow">DESIGN DEVELOP PROTECT</span><h2>{t('شغلك يستحق','Your work deserves')}<br/><span>{t("موقع يشبهك","a site that feels like you")}</span></h2><p>{t("واجهة تلفت، تجربة سهلة، وموقع ينمو ويا مشروعك نبني حضورك الرقمي بنفس الاهتمام اللي نصنع بيه المشهد","A striking interface, an easy experience, and a website that grows with your business We build your digital presence with the same care we bring to the screen")}</p><div className="digital-features"><span><Code2 size={17}/>{t('تصميم وبرمجة حسب الطلب','Custom design & development')}</span><span><ShieldCheck size={17}/>{t('مراجعة أمنية ضمن نطاق متفق عليه','Security reviews with an agreed scope')}</span><span><Check size={17}/>{t('عربي، إنكليزي، وكل الشاشات','Arabic, English, every screen')}</span></div><a className="button" href="#contact" onClick={()=>setFilter('technology')}>{t('أريد موقع لمشروعي','Build my website')}{arrow}</a></div>
@@ -128,7 +153,7 @@ export default function Studio({lang,initial}: {lang: Lang; initial: PublicData}
         {team.length>0&&<div className="team-grid">{team.map(e=><article key={e.id}>{e.media[0]?.mime.startsWith('image/')&&<img src={mediaUrl(e.media[0])} alt={textOf(e,'title',lang)} loading="lazy"/>}<h3>{textOf(e,'title',lang)}</h3><p>{textOf(e,'description',lang)}</p></article>)}</div>}
       </section>
 
-      <Updates entries={initial.entries} lang={lang} onOpen={setSelected} onStudioHeart={()=>{setFilter('studio-heart');setActiveService('studio-heart');}}/>
+      <Updates entries={initial.entries} lang={lang} onOpen={openEntry} onStudioHeart={()=>{setFilter('studio-heart');setActiveService('studio-heart');}}/>
 
       <section className="section contact-section" id="contact">
         <div className="section-label mono" dir="ltr"><span className="rec-dot"/>08 / LET’S MAKE IT HAPPEN</div>
@@ -152,6 +177,16 @@ export default function Studio({lang,initial}: {lang: Lang; initial: PublicData}
       <div className="footer-bottom"><span>© {new Date().getFullYear()} FRAME ON PRODUCTIONS</span><span>{t('إنت تتخيّل وإحنا نصنع المشهد','YOU IMAGINE — WE CREATE THE SCENE')}</span><div><a href="/">{t('اختيار اللغة','Language')}</a><a href="#home">{t('للأعلى','Back to top')}<ArrowUpRight size={18}/></a></div></div>
     </footer>
     {toast&&<div className="toast" role="status"><Check size={17}/>{toast}</div>}
-    <dialog ref={dialog} className="project-dialog" onCancel={()=>setSelected(null)} onClose={()=>setSelected(null)} onClick={e=>{if(e.target===e.currentTarget)setSelected(null);}} aria-labelledby="project-title">{selected&&<div className="dialog-content"><button className="dialog-close" onClick={()=>setSelected(null)} aria-label={t('إغلاق','Close')}><X/></button><span className="eyebrow">{(selected.kind==='post'?postCategories:categories).find(c=>c.id===selected.category)?.[lang]}</span><h2 id="project-title">{textOf(selected,'title',lang)}</h2><p>{textOf(selected,'description',lang)}</p><div className="project-gallery">{selected.videoUrl&&videoEmbed(selected.videoUrl)&&<iframe title={textOf(selected,'title',lang)} src={videoEmbed(selected.videoUrl)!} allow="fullscreen; picture-in-picture; encrypted-media" allowFullScreen referrerPolicy="strict-origin-when-cross-origin" sandbox="allow-scripts allow-same-origin allow-presentation"/>}{selected.media.map(m=>m.mime.startsWith('video/')?<video key={m.key} controls playsInline src={mediaUrl(m)} preload="metadata"/>:<img key={m.key} src={mediaUrl(m)} alt={textOf(selected,'title',lang)} loading="lazy"/>)}</div><a className="button" href="#contact" onClick={()=>setSelected(null)}>{t('خل نصنع مشروعك الجاي','Let’s make your next project')}{arrow}</a></div>}</dialog>
+    <dialog ref={dialog} className="project-dialog" onCancel={event=>{event.preventDefault();closeEntry();}} onClose={()=>{if(!dialog.current?.open)closeEntry();}} onClick={event=>{if(event.target===event.currentTarget)closeEntry();}} aria-labelledby="project-title">{selected&&<div className="dialog-content">
+      <button type="button" className="dialog-close" onClick={closeEntry} aria-label={t('إغلاق','Close')}><X/></button>
+      <span className="eyebrow">{(selected.kind==='post'?postCategories:categories).find(c=>c.id===selected.category)?.[lang]}</span><h2 id="project-title">{textOf(selected,'title',lang)}</h2>
+      <div className="project-gallery">
+        {primaryVideo&&<video key={primaryVideo.key} ref={player} controls playsInline src={mediaUrl(primaryVideo)} poster={selectedCover?mediaUrl(selectedCover):'/hero-cinema.png'} preload="metadata" onPlaying={()=>setPlaybackBlocked(false)}/>}
+        {selected.videoUrl&&videoEmbed(selected.videoUrl)&&<iframe title={textOf(selected,'title',lang)} src={videoEmbed(selected.videoUrl,!primaryVideo)!} allow="autoplay; fullscreen; picture-in-picture; encrypted-media" allowFullScreen referrerPolicy="strict-origin-when-cross-origin" sandbox="allow-scripts allow-same-origin allow-presentation"/>}
+        {playbackBlocked&&<div className="playback-notice" role="status"><p>{t('تعذّر بدء التشغيل تلقائياً استخدم زر التشغيل أو أدوات الفيديو','Playback could not start automatically Use play or the video controls')}</p><button type="button" className="button small" onClick={()=>{if(player.current)playVideo(player.current);}}><Play size={18}/>{t('تشغيل الفيديو','Play video')}</button></div>}
+        {selected.media.filter(m=>m.role!=='thumbnail'&&m.key!==primaryVideo?.key).map(m=>m.mime.startsWith('video/')?<video key={m.key} controls playsInline src={mediaUrl(m)} poster={selectedCover?mediaUrl(selectedCover):undefined} preload="none"/>:<img key={m.key} src={mediaUrl(m)} alt={textOf(selected,'title',lang)} loading="lazy"/>)}
+      </div>
+      <p>{textOf(selected,'description',lang)}</p><a className="button" href="#contact" onClick={closeEntry}>{t('خل نصنع مشروعك الجاي','Let’s make your next project')}{arrow}</a>
+    </div>}</dialog>
   </div>;
 }

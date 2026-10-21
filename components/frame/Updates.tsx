@@ -1,7 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { ArrowUpLeft, ArrowUpRight, FileText, Film } from 'lucide-react';
-import { postCategories, textOf, mediaUrl, type Entry, type Lang } from '@/lib/content';
+import { postCategories, textOf, mediaUrl, entryThumbnail, type Entry, type Lang } from '@/lib/content';
 import { displayText } from '@/lib/display-text';
 
 export default function Updates({ entries, lang, onOpen, onStudioHeart }: { entries: Entry[]; lang: Lang; onOpen: (entry: Entry) => void; onStudioHeart?: () => void }) {
@@ -21,7 +21,7 @@ export default function Updates({ entries, lang, onOpen, onStudioHeart }: { entr
       </div>
       {shown.length ? <div className="updates-grid">{shown.map(entry => <article className="update-card" key={entry.id}>
         <button type="button" onClick={() => onOpen(entry)} aria-label={`${t('اقرأ','Read')} ${textOf(entry,'title',lang)}`}>
-          {entry.media[0]?.mime.startsWith('image/') ? <div className="update-cover"><img src={mediaUrl(entry.media[0])} alt="" loading="lazy" /></div> : <div className="update-cover update-cover-type" aria-hidden="true">{entry.videoUrl || entry.media.some(media => media.mime.startsWith('video/')) ? <Film size={35} /> : <FileText size={35} />}<span className="mono">FRAME ON / JOURNAL</span></div>}
+          {entryThumbnail(entry) ? <div className="update-cover"><img src={mediaUrl(entryThumbnail(entry)!)} alt="" loading="lazy" /></div> : <div className="update-cover update-cover-type" aria-hidden="true">{entry.videoUrl || entry.media.some(media => media.mime.startsWith('video/')) ? <Film size={35} /> : <FileText size={35} />}<span className="mono">FRAME ON / JOURNAL</span></div>}
           <div className="update-copy"><div className="update-meta"><span>{postCategories.find(category => category.id === entry.category)?.[lang]}</span><time dateTime={entry.createdAt}>{formatter.format(new Date(entry.createdAt))}</time></div><h3>{textOf(entry,'title',lang)}</h3><p>{textOf(entry,'description',lang)}</p><span className="update-read">{t('اقرأ الحكاية','Read the story')}{ar ? <ArrowUpLeft size={17} /> : <ArrowUpRight size={17} />}</span></div>
         </button>
       </article>)}</div> : <p className="updates-empty" role="status">{t("بعد ما نشرنا محتوى بهذا التصنيف","There are no published updates in this category yet")}</p>}
