@@ -55,6 +55,6 @@ $$;
 revoke all on function public.frame_grant_admin(text,text) from public, anon, authenticated;
 grant execute on function public.frame_grant_admin(text,text) to service_role;
 insert into storage.buckets (id,name,public,file_size_limit,allowed_mime_types)
-values ('frameon-media','frameon-media',false,31457280,array['image/jpeg','image/png','image/webp','video/mp4','video/webm'])
-on conflict (id) do update set public=false,file_size_limit=31457280,allowed_mime_types=excluded.allowed_mime_types;
+values ('frameon-media','frameon-media',false,52428800,array['image/jpeg','image/png','image/webp','image/gif','video/mp4','video/webm'])
+on conflict (id) do update set public=false,file_size_limit=52428800,allowed_mime_types=excluded.allowed_mime_types;
 -- No public/authenticated storage policy is created. Signed upload URLs are server-authorized.

@@ -36,14 +36,40 @@ export async function saveEntry(e:Entry,update=false){const row={id:e.id,kind:e.
 export async function deleteEntry(id:string){await must(await service(`/rest/v1/entries?id=eq.${encodeURIComponent(id)}`,{method:'DELETE'}));}
 const storagePath=(key:string)=>`/storage/v1/object/${bucketName}/${key}`;
 async function inspectMedia(media:Media):Promise<boolean>{
-  const r=await service(storagePath(media.key),{headers:{Range:'bytes=0-31'}});if(!r.ok)return false;
-  const size=Number(r.headers.get('content-range')?.split('/')[1]||r.headers.get('content-length'));const mime=r.headers.get('content-type')?.split(';')[0];
-  const reader=r.body?.getReader();if(!reader)return false;const bytes:number[]=[];try{while(bytes.length<32){const chunk=await reader.read();if(chunk.done)break;bytes.push(...chunk.value.slice(0,32-bytes.length));}}finally{await reader.cancel();}
-  return size===media.size&&size<=MAX_MEDIA_BYTES&&mime===media.mime&&validSignature(new Uint8Array(bytes),media.mime);
+  const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),12000);
+  let reader:ReadableStreamDefaultReader<Uint8Array>|undefined;
+  try{
+    const r=await service(storagePath(media.key),{headers:{Range:'bytes=0-31'},signal:controller.signal});
+    if(r.status===404)return false;
+    if(!r.ok)throw new HttpError(503,'التخزين مشغول حالياً. أعد تأكيد الملف بدون رفعه من جديد.');
+    const size=Number(r.headers.get('content-range')?.split('/')[1]||r.headers.get('content-length'));const mime=r.headers.get('content-type')?.split(';')[0];
+    reader=r.body?.getReader();if(!reader)return false;
+    const bytes=new Uint8Array(32);let count=0;
+    while(count<32){const chunk=await reader.read();if(chunk.done)break;const part=chunk.value.subarray(0,32-count);bytes.set(part,count);count+=part.length;}
+    return size===media.size&&size<=MAX_MEDIA_BYTES&&mime===media.mime&&validSignature(bytes.subarray(0,count),media.mime);
+  }catch(error){if(controller.signal.aborted)throw new HttpError(504,'تأخر التحقق من الملف. أعد التأكيد؛ ما تحتاج ترفعه من جديد.');throw error;}
+  finally{
+    // Do not await cancellation of Next.js' wrapped stream when Storage ignores
+    // Range and serves the full object: that can stall an otherwise valid upload.
+    if(reader)void reader.cancel().catch(()=>{});
+    controller.abort();clearTimeout(timer);
+  }
 }
 export async function uploadMedia(file:File,media:Media){if(file.size>4*1024*1024)throw new Error('Use direct upload for large files.');const bytes=new Uint8Array(await file.arrayBuffer());if(!validSignature(bytes.slice(0,32),media.mime))throw new Error('Invalid file contents.');await must(await service(storagePath(media.key),{method:'POST',headers:{'Content-Type':media.mime,'x-upsert':'false'},body:bytes}));return media;}
-export async function signUpload(media:Media):Promise<{url:string}>{const r=await must(await service(`/storage/v1/object/upload/sign/${bucketName}/${media.key}`,{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'}));const data=await r.json() as {url:string};const url=new URL(`${config().url}/storage/v1${data.url}`);if(url.origin!==new URL(config().url).origin)throw new Error('Unexpected upload endpoint.');return {url:url.toString()};}
-export async function completeUpload(media:Media){if(!await inspectMedia(media)){await service(storagePath(media.key),{method:'DELETE'});throw new HttpError(400,'الملف غير مكتمل أو محتواه لا يطابق نوعه.');}return media;}
+export async function signUpload(media:Media):Promise<{endpoint:string;token:string;bucket:string}>{
+  const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),12000);
+  try{
+    const r=await service(`/storage/v1/object/upload/sign/${bucketName}/${media.key}`,{method:'POST',headers:{'Content-Type':'application/json'},body:'{}',signal:controller.signal});
+    if(!r.ok)throw new HttpError(503,'تعذّر تجهيز الرفع في التخزين. تأكد من إعدادات حاوية الملفات وأعد المحاولة.');
+    const data=await r.json() as {url:string};const base=new URL(config().url);
+    const url=new URL(`${base.origin}/storage/v1${data.url}`);const token=url.searchParams.get('token');
+    if(url.origin!==base.origin||!token)throw new Error('Unexpected upload endpoint.');
+    if(base.hostname.endsWith('.supabase.co'))base.hostname=base.hostname.replace(/\.supabase\.co$/,'.storage.supabase.co');
+    return {endpoint:`${base.origin}/storage/v1/upload/resumable`,token,bucket:bucketName};
+  }catch(error){if(controller.signal.aborted)throw new HttpError(504,'تأخر تجهيز الرفع. جرّب مرة ثانية.');throw error;}
+  finally{clearTimeout(timer);}
+}
+export async function completeUpload(media:Media){if(!await inspectMedia(media))throw new HttpError(400,'الملف غير مكتمل أو نوعه لا يطابق محتواه. اختر الملف الأصلي بصيغة مدعومة.');return media;}
 export async function mediaExists(media:Media){return inspectMedia(media);}
 async function hasReference(key:string,publishedOnly=false){const q=new URLSearchParams({select:'id',media:'cs.'+JSON.stringify([{key}]),limit:'1'});if(publishedOnly)q.set('published','eq.true');const r=await must(await service(`/rest/v1/entries?${q}`));return ((await r.json()) as unknown[]).length>0;}
 export async function removeMedia(key:string){if(await hasReference(key))throw new Error('This file is still used by an entry.');await must(await service(storagePath(key),{method:'DELETE'}));}
