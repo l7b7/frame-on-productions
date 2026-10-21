@@ -16,7 +16,10 @@ export async function isAnimatedPng(file: Blob): Promise<boolean> {
   return true;
 }
 
-export async function prepareImage(file: File, quality: ImageQuality): Promise<{ file: File; note: string }> {
+export async function prepareImage(file: File, quality: ImageQuality, purpose: 'media' | 'thumbnail' = 'media'): Promise<{ file: File; note: string }> {
+  // Covers must retain the selected bytes. Canvas/WebP conversion can produce
+  // corrupted colors with some graphics drivers or canvas-protection extensions.
+  if (purpose === 'thumbnail') return { file, note: 'حافظنا على صورة الغلاف الأصلية بنفس الصيغة والألوان' };
   if (quality === 'original' || !['image/jpeg', 'image/png'].includes(file.type)) return { file, note: '' };
   if (file.type === 'image/png' && await isAnimatedPng(file)) return { file, note: 'حافظنا على حركة الصورة بدون ضغط.' };
   const source = URL.createObjectURL(file);

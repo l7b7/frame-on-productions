@@ -76,7 +76,7 @@ export default function MediaUploader({ count, disabled, variant = 'media', onUp
         if (job.done) continue;
         setProgress({ name: job.original.name, index: index + 1, total: jobs.current.length, bytes: 0, size: job.file?.size || job.original.size, stage: "نجهّز الملف", note: job.note || '' });
         if (!job.file) {
-          const prepared = await prepareImage(job.original, quality);
+          const prepared = await prepareImage(job.original, quality, variant);
           job.file = prepared.file;
           job.note = prepared.note;
           setProgress(value => value ? { ...value, size: prepared.file.size, note: prepared.note } : value);
@@ -112,6 +112,7 @@ export default function MediaUploader({ count, disabled, variant = 'media', onUp
     if (thumbnail && selected.length !== 1) { setError('اختَر صورة غلاف واحدة'); return; }
     if (count + selected.length > 12) { setError("تگدر تضيف حتى 12 ملف لكل محتوى"); return; }
     if (selected.some(file => !acceptedMimes.includes(file.type) || !file.size)) { setError(thumbnail ? 'اختَر صورة غلاف بصيغة JPG أو PNG أو WebP أو GIF' : "اختر JPG أو PNG أو WebP أو GIF أو MP4 أو WebM الملف لازم يحتوي بيانات"); return; }
+    if (thumbnail && selected[0].size > MAX_MEDIA_BYTES) { setError('صورة الغلاف أكبر من 50 MB اختَر صورة أصغر حتى نرفعها بصيغتها الأصلية'); return; }
     if (selected.some(file => file.size > 100 * 1024 * 1024 && ['image/jpeg', 'image/png'].includes(file.type))) { setError("الصورة أكبر من 100 MB قلّل أبعادها أولاً حتى يگدر المتصفح يعالجها"); return; }
     const large = selected.find(file => file.size > MAX_MEDIA_BYTES && !['image/jpeg', 'image/png'].includes(file.type));
     if (large) { setError(`حجم «${large.name}» ${formatBytes(large.size)}. الحد الحالي 50 MB للملف؛ للفيديو الأكبر استخدم خيار «فيديو طويل برابط».`); return; }
@@ -122,10 +123,10 @@ export default function MediaUploader({ count, disabled, variant = 'media', onUp
 
   const percent = progress ? Math.min(100, Math.floor(progress.bytes / progress.size * 100)) : 0;
   return <section className="media-uploader" aria-label={thumbnail ? 'رفع غلاف الفيديو' : 'رفع الصور والفيديوهات'}>
-    <label className="compression-choice">{thumbnail ? 'جودة الغلاف قبل الرفع' : 'جودة الصور قبل الرفع'}<select value={quality} disabled={running || pending || disabled} onChange={event => setQuality(event.target.value as ImageQuality)}><option value="balanced">جودة عالية وحجم مناسب</option><option value="small">حجم أصغر</option><option value="original">الملف الأصلي</option></select></label>
-    <p className="upload-help">{thumbnail ? 'نجهّز صورة الغلاف ونضغطها قبل الرفع حسب الجودة اللي تختارها' : 'نضغط الصور الثابتة قبل رفعها ونحافظ على الصور المتحركة الفيديو يُرفع بجودته الأصلية'}</p>
+    {!thumbnail && <label className="compression-choice">جودة الصور قبل الرفع<select value={quality} disabled={running || pending || disabled} onChange={event => setQuality(event.target.value as ImageQuality)}><option value="balanced">جودة عالية وحجم مناسب</option><option value="small">حجم أصغر</option><option value="original">الملف الأصلي</option></select></label>}
+    <p className="upload-help">{thumbnail ? 'نرفع صورة الغلاف الأصلية بنفس الصيغة والألوان اللي اخترتها من جهازك' : 'نضغط الصور الثابتة قبل رفعها ونحافظ على الصور المتحركة الفيديو يُرفع بجودته الأصلية'}</p>
     <div className={`upload-zone ${running ? 'uploading' : ''}`} onDragOver={event => event.preventDefault()} onDrop={event => { event.preventDefault(); choose(event.dataTransfer.files); }}>
-      <Upload size={30}/><h3>{thumbnail ? 'اسحب صورة غلاف الفيديو لهنا' : 'اسحب صورك وفيديوهاتك لهنا'}</h3><p>{thumbnail ? 'صورة واحدة · ضمن حد 12 ملف للمحتوى' : 'حتى 50 MB للملف · حتى 12 ملف للمحتوى'}</p>
+      <Upload size={30}/><h3>{thumbnail ? 'اسحب صورة غلاف الفيديو لهنا' : 'اسحب صورك وفيديوهاتك لهنا'}</h3><p>{thumbnail ? 'صورة واحدة حتى 50 MB · ضمن حد 12 ملف للمحتوى' : 'حتى 50 MB للملف · حتى 12 ملف للمحتوى'}</p>
       <input ref={input} aria-label={thumbnail ? 'اختيار صورة الغلاف' : 'اختيار ملفات للرفع'} type="file" accept={acceptedMimes.join(',')} multiple={!thumbnail} hidden onChange={event => choose(event.target.files)}/>
       <button className="button small secondary" type="button" disabled={running || pending || disabled} onClick={() => input.current?.click()}><Plus size={16}/>{thumbnail ? 'اختيار صورة الغلاف' : 'اختيار الملفات'}</button><small>{thumbnail ? 'JPG / PNG / WEBP / GIF' : 'JPG / PNG / WEBP / GIF / MP4 / WEBM'}</small>
     </div>

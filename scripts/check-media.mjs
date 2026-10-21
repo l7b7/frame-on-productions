@@ -36,7 +36,7 @@ try {
   const entryRoute = await import(pathToFileURL(output('app/api/admin/entries/route.ts')).href);
   const updateRoute = await import(pathToFileURL(output('app/api/admin/entries/[id]/route.ts')).href);
   const { adminRequest } = await import(pathToFileURL(output('lib/admin-request.ts')).href);
-  const { isAnimatedPng } = await import(pathToFileURL(output('lib/prepare-image.ts')).href);
+  const { isAnimatedPng, prepareImage } = await import(pathToFileURL(output('lib/prepare-image.ts')).href);
   const id = '11111111-1111-4111-8111-111111111111';
   const key = 'media/22222222-2222-4222-8222-222222222222.mp4';
   const media = { key, name: 'film.mp4', mime: 'video/mp4', size: 35 * 1024 * 1024 };
@@ -178,6 +178,21 @@ try {
     globalThis.fetch = async () => { throw new TypeError('Network fixture'); }; await assert.rejects(adminRequest('/fixture'), /الاتصال/);
   });
   await check('aborting an admin request interrupts it', async () => { globalThis.fetch = async (_, init) => new Promise((resolve, reject) => init.signal.addEventListener('abort', () => reject(new DOMException('Aborted', 'AbortError')))); const controller = new AbortController(); const pending = adminRequest('/fixture', { signal: controller.signal }); controller.abort(); await assert.rejects(pending, /إيقاف/); });
+  await check('video-cover preparation preserves the selected bytes without using canvas for any image quality', async () => {
+    const originalObjectURL = URL.createObjectURL; let conversions = 0;
+    URL.createObjectURL = () => { conversions++; throw Error('Unexpected cover conversion'); };
+    try {
+      for (const mime of ['image/jpeg', 'image/png', 'image/webp', 'image/gif']) {
+        const file = new File([new Uint8Array([255,216,255,1,2,3,4,5])], 'selected.' + validation.extension(mime), { type: mime });
+        for (const quality of ['balanced', 'small', 'original']) {
+          const result = await prepareImage(file, quality, 'thumbnail');
+          assert.equal(result.file, file); assert.equal(result.file.type, mime); assert.equal(result.file.name, file.name);
+          assert.deepEqual(new Uint8Array(await result.file.arrayBuffer()), new Uint8Array(await file.arrayBuffer()));
+        }
+      }
+      assert.equal(conversions, 0, 'cover preparation must never enter the canvas conversion path');
+    } finally { URL.createObjectURL = originalObjectURL; }
+  });
   await check('APNG animation is detected before image recompression', async () => {
     const png = new Uint8Array(32); png.set([137,80,78,71,13,10,26,10]); png.set(new TextEncoder().encode('acTL'), 12); assert.equal(await isAnimatedPng(new Blob([png])), true);
     png.set(new TextEncoder().encode('IDAT'), 12); assert.equal(await isAnimatedPng(new Blob([png])), false);
