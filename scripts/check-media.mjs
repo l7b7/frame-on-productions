@@ -8,7 +8,7 @@ import ts from 'typescript';
 // No credentials, production content, or live Supabase access are needed.
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const directory = await mkdtemp(path.join(root, 'node_modules', '.frameon-media-'));
-const sources = ['lib/content.ts','lib/validation.ts','lib/errors.ts','lib/runtime.ts','lib/api.ts','lib/admin-request.ts','lib/prepare-image.ts','app/api/admin/media/route.ts','app/api/admin/media/complete/route.ts','app/api/admin/entries/route.ts','app/api/admin/entries/[id]/route.ts'];
+const sources = ['lib/display-text.ts','lib/content.ts','lib/validation.ts','lib/errors.ts','lib/runtime.ts','lib/api.ts','lib/admin-request.ts','lib/prepare-image.ts','app/api/admin/media/route.ts','app/api/admin/media/complete/route.ts','app/api/admin/entries/route.ts','app/api/admin/entries/[id]/route.ts'];
 const output = source => path.join(directory, source.replace(/\.ts$/, '.mjs'));
 const originalFetch = globalThis.fetch;
 const originalTimeout = globalThis.setTimeout;

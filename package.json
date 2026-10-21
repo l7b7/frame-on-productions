@@ -11,7 +11,8 @@
     "build": "next build --webpack",
     "start": "next start --hostname 127.0.0.1 --port 3000",
     "typecheck": "tsc --noEmit",
-    "test:media": "node scripts/check-media.mjs"
+    "test:media": "node scripts/check-media.mjs",
+    "test:copy": "node scripts/check-copy.mjs"
   },
   "dependencies": {
     "clsx": "2.1.1",

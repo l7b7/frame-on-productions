@@ -1,0 +1,12 @@
+import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
+import ts from 'typescript';
+const source = await readFile(new URL('../lib/display-text.ts', import.meta.url), 'utf8');
+const javascript = ts.transpileModule(source, { compilerOptions: { target:ts.ScriptTarget.ES2022, module:ts.ModuleKind.ES2022 } }).outputText;
+const { displayText } = await import('data:text/javascript,' + encodeURIComponent(javascript));
+assert.equal(displayText('One sentence. Another sentence.'), 'One sentence Another sentence');
+assert.equal(displayText('حكاية أولى.\n\nحكاية ثانية.'), 'حكاية أولى\n\nحكاية ثانية');
+assert.equal(displayText('Opening...\nClosing…'), 'Opening\nClosing');
+assert.equal(displayText('1.5 MB — hello@example.com — https://example.com/a.b'), '1.5 MB — hello@example.com — https://example.com/a.b');
+assert.equal(displayText('من الفكرة… إلى الشاشة'), 'من الفكرة… إلى الشاشة');
+console.log('PASS presentation punctuation, paragraph breaks, ellipses, decimals, emails and URLs');
