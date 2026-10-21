@@ -4,6 +4,7 @@ import { useState, type FormEvent } from 'react';
 import { ArrowRight, Eye, EyeOff, Loader2, LockKeyhole, ShieldCheck } from 'lucide-react';
 import type { AdminSession } from '@/lib/runtime';
 import Brand from './Brand';
+import AdminStudioMark from './AdminStudioMark';
 
 export default function AdminAccess({ session, busy, error, onLogin }: {
   session: AdminSession | null;
@@ -12,11 +13,11 @@ export default function AdminAccess({ session, busy, error, onLogin }: {
   onLogin: (event: FormEvent<HTMLFormElement>) => Promise<void>;
 }) {
   const [showPassword, setShowPassword] = useState(false);
-  return <main className="admin-access" dir="rtl">
+  return <main className="admin-access admin-cyber-access" dir="rtl">
     <aside className="admin-access-scene">
       <img className="admin-access-image" src="/intro-lens.png" alt="" width="1672" height="941" />
       <Brand />
-      <div className="admin-access-story"><span className="eyebrow" dir="ltr">BEHIND EVERY GREAT FRAME</span><h2>مكانك<br />خلف المشهد<span></span></h2><p>أعمالك، فريقك، وكل التفاصيل<br />مساحة واحدة حتى تصنع الحكاية الجاية</p></div>
+      <div className="admin-access-story"><span className="eyebrow" dir="ltr">CREATIVITY MEETS CONTROL</span><h2>مكانك<br />خلف المشهد<span></span></h2><p>شغف السينما، ودقّة التقنية<br />مساحة فريقك لصناعة المشهد الجاي</p><AdminStudioMark/></div>
       <span className="admin-access-stamp mono" dir="ltr">FRAME ON PRODUCTIONS / STUDIO CONTROL</span>
     </aside>
     <section className="admin-access-panel" aria-labelledby="admin-access-title">
