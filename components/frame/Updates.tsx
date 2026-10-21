@@ -4,7 +4,7 @@ import { ArrowUpLeft, ArrowUpRight, FileText, Film } from 'lucide-react';
 import { postCategories, textOf, mediaUrl, type Entry, type Lang } from '@/lib/content';
 import { displayText } from '@/lib/display-text';
 
-export default function Updates({ entries, lang, onOpen, onBehindScenes }: { entries: Entry[]; lang: Lang; onOpen: (entry: Entry) => void; onBehindScenes?: () => void }) {
+export default function Updates({ entries, lang, onOpen, onStudioHeart }: { entries: Entry[]; lang: Lang; onOpen: (entry: Entry) => void; onStudioHeart?: () => void }) {
   const [filter, setFilter] = useState('all');
   const ar = lang === 'ar';
   const t = (arabic: string, english: string) => displayText(ar ? arabic : english);
@@ -13,7 +13,7 @@ export default function Updates({ entries, lang, onOpen, onBehindScenes }: { ent
   const formatter = new Intl.DateTimeFormat(ar ? 'ar-IQ' : 'en-GB', { day:'numeric', month:'short', year:'numeric', timeZone:'Asia/Baghdad' });
   return <section className="section updates-section" id="updates" aria-labelledby="updates-title">
     <div className="section-label mono" dir="ltr"><span className="rec-dot" />07 / STUDIO JOURNAL</div>
-    <div className="section-heading"><h2 id="updates-title"><a className="button studio-journal-link" href="#behind-scenes" onClick={onBehindScenes}>{t('من قلب الاستوديو','From inside the studio')}{ar ? <ArrowUpLeft size={24}/> : <ArrowUpRight size={24}/>}</a></h2></div>
+    <div className="section-heading"><h2 id="updates-title"><a className="button studio-journal-link" href="#studio-heart" onClick={onStudioHeart}>{t('من قلب الاستوديو','From inside the studio')}{ar ? <ArrowUpLeft size={24}/> : <ArrowUpRight size={24}/>}</a></h2></div>
     {posts.length ? <>
       <div className="work-filters" role="group" aria-label={t('تصفية الأخبار والمقالات','Filter studio updates')}>
         <button type="button" className={filter === 'all' ? 'selected' : ''} aria-pressed={filter === 'all'} onClick={() => setFilter('all')}>{t('كل الجديد','All updates')}</button>

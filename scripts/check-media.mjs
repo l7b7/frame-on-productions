@@ -118,6 +118,11 @@ try {
     const response = await completeRoute.POST(request(media)); assert.equal(response.status, 504); assert.match((await response.json()).error, /تأخر/); assert.equal(deletes, 0);
   });
   const draft = { kind: 'project', category: 'advertising', titleAr: 'اختبار معزول', titleEn: 'Isolated fixture', descriptionAr: '', descriptionEn: '', media: [media], videoUrl: '', published: false, featured: false };
+  await check('studio-heart content keeps its category through save and public listing', async () => {
+    const response = await entryRoute.POST(request({ ...draft, category: 'studio-heart', published: true })); assert.equal(response.status, 201);
+    const { entry } = await response.json(); assert.equal(entry.category, 'studio-heart');
+    const published = await runtime.listEntries(); assert.equal(published.length, 1); assert.equal(published[0].category, 'studio-heart');
+  });
   await check('verified media can be saved privately and published through the real routes', async () => {
     const saved = await entryRoute.POST(request(draft)); assert.equal(saved.status, 201); const { entry } = await saved.json();
     assert.equal((await runtime.listEntries()).length, 0); cookies.clear(); assert.equal((await runtime.readMedia(key, new Request('https://frameon.test/api/media/' + key))).status, 404);

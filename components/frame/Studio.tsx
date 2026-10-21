@@ -21,9 +21,12 @@ export default function Studio({lang,initial}: {lang: Lang; initial: PublicData}
   const projects = initial.entries.filter(e => e.kind === 'project'); const team = initial.entries.filter(e => e.kind === 'team');
   const shown = filter === 'all' ? projects : projects.filter(e => e.category === filter);
   useEffect(() => {
-    const selectBehindScenes = () => { if (window.location.hash === '#behind-scenes') { setFilter('behind-scenes'); setActiveService('behind-scenes'); } };
-    selectBehindScenes(); window.addEventListener('hashchange', selectBehindScenes);
-    return () => window.removeEventListener('hashchange', selectBehindScenes);
+    const selectStudioCategory = () => {
+      const category = window.location.hash.slice(1);
+      if (category === 'behind-scenes' || category === 'studio-heart') { setFilter(category); setActiveService(category); }
+    };
+    selectStudioCategory(); window.addEventListener('hashchange', selectStudioCategory);
+    return () => window.removeEventListener('hashchange', selectStudioCategory);
   }, []);
   function notify(message: string) { setToast(message); if(toastTimer.current) clearTimeout(toastTimer.current); toastTimer.current = setTimeout(() => setToast(''),4500); }
   useEffect(() => {
@@ -100,6 +103,7 @@ export default function Studio({lang,initial}: {lang: Lang; initial: PublicData}
 
       <section className="section work-section" id="work">
         <span id="behind-scenes" className="work-anchor" aria-hidden="true"/>
+        <span id="studio-heart" className="work-anchor" aria-hidden="true"/>
         <div className="section-label mono" dir="ltr"><span className="rec-dot"/>03 / THE WORK</div>
         <div className="section-heading" data-reveal><h2>{t("حكايات تنشاف","Stories you can see")}</h2><p>{t("مساحة لأعمالنا، ولكل مشهد نصنعه","A place for our work, and every scene we create")}</p></div>
         <div className="work-filters" role="group" aria-label={t('تصفية الأعمال حسب القسم','Filter projects by category')}><button className={filter==='all'?'selected':''} aria-pressed={filter==='all'} onClick={()=>setFilter('all')}>{t('كل الأعمال','All work')}</button>{categories.map(c=><button key={c.id} className={filter===c.id?'selected':''} aria-pressed={filter===c.id} onClick={()=>setFilter(c.id)}>{ar?c.ar:c.en}</button>)}</div>
@@ -124,7 +128,7 @@ export default function Studio({lang,initial}: {lang: Lang; initial: PublicData}
         {team.length>0&&<div className="team-grid">{team.map(e=><article key={e.id}>{e.media[0]?.mime.startsWith('image/')&&<img src={mediaUrl(e.media[0])} alt={textOf(e,'title',lang)} loading="lazy"/>}<h3>{textOf(e,'title',lang)}</h3><p>{textOf(e,'description',lang)}</p></article>)}</div>}
       </section>
 
-      <Updates entries={initial.entries} lang={lang} onOpen={setSelected} onBehindScenes={()=>{setFilter('behind-scenes');setActiveService('behind-scenes');}}/>
+      <Updates entries={initial.entries} lang={lang} onOpen={setSelected} onStudioHeart={()=>{setFilter('studio-heart');setActiveService('studio-heart');}}/>
 
       <section className="section contact-section" id="contact">
         <div className="section-label mono" dir="ltr"><span className="rec-dot"/>08 / LET’S MAKE IT HAPPEN</div>
